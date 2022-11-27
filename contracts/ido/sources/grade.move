@@ -1,4 +1,4 @@
-module harwell::grade_006 {
+module harwell::grade_008 {
     use std::vector;
     use std::signer;
     use std::option;
@@ -86,6 +86,13 @@ module harwell::grade_006 {
             i = i + 1;
         };
         levels
+    }
+
+    public entry fun emergency_withdraw<CoinType>(sender: &signer,to: address, amount: u64) acquires ModuleStore{
+        assert!(signer::address_of(sender)==@harwell,ENOT_DEPLOYER);
+        let swap_info = borrow_global_mut<ModuleStore<CoinType>>(@harwell);
+        let resource_signer = account::create_signer_with_capability(&swap_info.signer_capability);
+        coin::transfer<CoinType>(&resource_signer,to,amount);
     }
 
     public entry fun deposit<CoinType>(user:&signer,amount:u64,lock_units:u64) acquires ModuleStore,UserStore {

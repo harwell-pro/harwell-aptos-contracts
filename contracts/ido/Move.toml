@@ -1,11 +1,11 @@
 [package]
-name = "grade_006"
+name = "grade_008"
 version = "0.0.1"
 
 [addresses]
 aptos_framework = "0x1"
 aptos_std = "0x1"
-harwell = "_"
+harwell = "0x815401357d501dc73b084399f692f942eec25a2fc9f2795cb073a3df6330626f"
 std = "0x1"
 
 [dependencies]

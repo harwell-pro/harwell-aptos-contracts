@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "license": "Apache-2.0",
   "scripts": {
-    "coin": "ts-node scripts/coin.ts",
-    "grade": "ts-node scripts/grade.ts"
+    "coin": "ts-node scripts/coin/coin.ts",
+    "ido": "ts-node scripts/ido/ido.ts",
+    "hwswap": "ts-node scripts/hwswap/verify.ts"
   },
   "keywords": [],
   "dependencies": {
@@ -15,6 +16,7 @@
     "tweetnacl": "^1.0.3",
     "aptos": "latest",
     "dotenv": "16.0.1",
+    "decimal.js": "10.4.2",
     "yaml": "2.1.3"
   },
   "devDependencies": {

@@ -1,33 +1,24 @@
-import { readConfig, parseAccount } from "./common";
+import { readConfig, parseAccount, getNodeUrl, unitToOctas } from "../common";
 import { AptosAccount, MaybeHexString } from "aptos";
-import { BaseClient, BaseCoinClient } from "./client";
+import { BaseClient, CoinClient } from "../client";
+import { readContract, writeContract } from "../utils/resource";
 
 interface SimpleKeyValueObject {
     [key: string]: any;
 }
 
-let module_name = "grade_006";
-const GAS_UNIT = 1;
-const APT = GAS_UNIT * 1e6;
-
-function apt_to_gas_unit(n: number): number {
-    return Math.trunc(n * APT);
-}
+let module_name = "grade_008";
 
 let config = readConfig();
 let network = process.argv[2];
-console.log("profile", network);
-let { rest_url: nodeUrl, private_key: privateKey, account } = config.profiles[network];
-let deployer = parseAccount(config, network);
-console.log("nodeUrl", nodeUrl);
-console.log("privateKey", privateKey);
-console.log("account", account);
-console.log("----------------------------");
-
+let nodeUrl = getNodeUrl(network);
+let deployer = parseAccount(config, "default");
 let bob = parseAccount(config, "bob");
 let harwCoin = `${deployer.address()}::HARW::T`;
+console.log("nodeUrl", nodeUrl);
+console.log("----------------------------");
 
-class AllowanceClient extends BaseClient {
+class GradeClient extends BaseClient {
     constructor() {
         super(nodeUrl, deployer, module_name);
     }
@@ -75,7 +66,7 @@ class AllowanceClient extends BaseClient {
 
         let lockUnitSpan = network == "mainnet" ? 3600 * 24 : 1;
         let names = levels.map((item) => [...Buffer.from(item.name, "utf-8")]);
-        let weights = levels.map((item) => item.weight * APT);
+        let weights = levels.map((item) => unitToOctas(item.weight));
         let payload = {
             type: "script_function_payload",
             function: `${this.moduleType}::initialize`,
@@ -87,20 +78,42 @@ class AllowanceClient extends BaseClient {
     }
 }
 
-async function mint(client: BaseCoinClient, user: AptosAccount, amount: number) {
+async function mint(client: CoinClient, user: AptosAccount, amount: number) {
     if (!(await client.isRegistered(user.address()))) {
-        await client.register(deployer.address(), user);
+        await client.register(user);
     }
     await client.mint(deployer, user.address(), amount);
 }
 
 async function main() {
-    const client = new AllowanceClient();
+    const client = new GradeClient();
+    await deploy(client);
+    //await verify(client);
+}
+async function deploy(client: GradeClient) {
     await client.initialize();
+    let moduleStore = await client.queryModuleStore();
+    if (moduleStore) {
+        let { levels, lock_unit_span, signer_capability } = moduleStore.data;
+        console.log("moduleStore", moduleStore);
+        let contracts = readContract(network, "ido");
+        contracts.grade = {
+            address: `${deployer.address()}::${module_name}`,
+            levels,
+            lock_unit_span,
+            signer_capability,
+        };
+        writeContract(network, "ido", contracts);
+    }
+}
+async function verify(client: GradeClient) {
     let user = bob;
-    let harwClient = new BaseCoinClient(nodeUrl, deployer, "HARW");
+    let harwClient = new CoinClient(nodeUrl, harwCoin);
     if (network != "mainnet") {
-        //await mint(harwClient, user, APT * 10000000);
+        let balance = await harwClient.getBalance(user.address());
+        if (balance < unitToOctas(1000000)) {
+            await mint(harwClient, user, unitToOctas(10000000));
+        }
     }
 
     let balance1 = await harwClient.getBalance(user.address());
@@ -112,13 +125,13 @@ async function main() {
     console.log("balance2", balance2);
 }
 
-async function verifyDeposit(client: AllowanceClient, user: AptosAccount) {
-    await client.deposit(user, 7000 * APT, 1);
-    await client.deposit(user, 887000 * APT, 1);
-    await client.deposit(user, 29000 * APT, 1);
+async function verifyDeposit(client: GradeClient, user: AptosAccount) {
+    await client.deposit(user, unitToOctas(7007), 1);
+    await client.deposit(user, unitToOctas(887000), 1);
+    await client.deposit(user, unitToOctas(29000), 1);
 }
 
-async function verifyWithdraw(client: AllowanceClient, user: AptosAccount) {
+async function verifyWithdraw(client: GradeClient, user: AptosAccount) {
     let userStore = await client.queryUserStore(user.address());
     if (userStore) {
         console.log("user-level", userStore.data.level);

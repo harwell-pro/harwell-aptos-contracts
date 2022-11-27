@@ -12,11 +12,11 @@ function saveResource(network: string, obj: any) {
     saveJson(path.join(publishPath, `${network}.json`), obj);
 }
 
-export function readModuleResource(network: string, moduleName: string) {
+export function readContract(network: string, moduleName: string) {
     return readResource(network)[moduleName] || {};
 }
 
-export function saveModuleResource(network: string, moduleName: string, obj: any) {
+export function writeContract(network: string, moduleName: string, obj: any) {
     let resource = readResource(network) || {};
     resource[moduleName] = obj;
     saveResource(network, resource);

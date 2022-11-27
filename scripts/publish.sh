@@ -5,9 +5,10 @@ base=$(
 cd "$base" || exit
 cd ..
 
-profile=$1
+network=$1
 package=$2
+profile=$3
 
-echo publish $2 to $1
+echo publish $1 to $2
 
-aptos move publish --profile $1 --assume-yes --package-dir ./contracts/$2 --named-addresses harwell=$1
+aptos move publish --profile $profile --assume-yes --package-dir ./contracts/$package --url "https://fullnode.$network.aptoslabs.com"
